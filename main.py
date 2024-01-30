@@ -1,5 +1,8 @@
 import streamlit as st
 import pickle
+import joblib  # Use joblib instead of pickle for Streamlit
+
+
 
 import nltk
 from nltk.tokenize import word_tokenize
@@ -33,8 +36,7 @@ def preprocess_text(text):
 
     return preprocessed_text
 
-
-tfidf = pickle.load(open('vectorizer.pkl','rb'))
+tfidf = joblib.load('vectrzr.pkl')
 model = pickle.load(open('model.pkl','rb'))
 
 st.title("SMS Spam Classifier")
