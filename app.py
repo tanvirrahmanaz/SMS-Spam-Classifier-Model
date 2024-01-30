@@ -1,11 +1,10 @@
 import streamlit as st
-import pickle
+import pickle as pickle
 
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-import string
 
 nltk.download('punkt')
 nltk.download('stopwords')
