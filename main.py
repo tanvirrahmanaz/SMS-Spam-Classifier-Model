@@ -1,53 +1,66 @@
 import streamlit as st
 import pickle
-
+import pandas as pd
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+import datetime
 
-nltk.download('punkt')
+nltk.download('punkt')  # Download necessary NLTK resources
 nltk.download('stopwords')
 
-ps = PorterStemmer()
+ps = PorterStemmer()  # Instantiate stemmer outside functions for efficiency
+
 def preprocess_text(text):
-    # Convert to lowercase
+    """Preprocesses text for spam classification."""
     text = text.lower()
-
-    # Tokenization
     tokens = word_tokenize(text)
-
-    # Remove special characters and punctuation
     tokens = [token for token in tokens if token.isalnum()]
-
-    # Remove stop words
     stop_words = set(stopwords.words('english'))
     tokens = [token for token in tokens if token not in stop_words]
+    tokens = [ps.stem(token) for token in tokens]
+    return ' '.join(tokens)
 
-    # Stemming
-    stemmer = PorterStemmer()
-    tokens = [stemmer.stem(token) for token in tokens]
+def load_models():
+    """Loads the trained TF-IDF vectorizer and spam classification model."""
+    with open('vectorizer.pkl', 'rb') as f:
+        tfidf = pickle.load(f)
+    with open('model.pkl', 'rb') as f:
+        model = pickle.load(f)
+    return tfidf, model
 
-    # Join the tokens back into a single string
-    preprocessed_text = ' '.join(tokens)
+def main():
+    st.title("SMS Spam Classifier and User Feedback")
 
-    return preprocessed_text
+    st.sidebar.title("Navigation")
+    app_mode = st.sidebar.selectbox("Choose a feature:", ["SMS Spam Classifier", "Complaint Box"])
 
+    if app_mode == "SMS Spam Classifier":
+        tfidf, model = load_models()
 
-tfidf = pickle.load(open('vectorizer.pkl','rb'))
-model = pickle.load(open('model.pkl','rb'))
+        input_sms = st.text_input("Enter the message")
+        if st.button('Predict'):
+            transform_sms = preprocess_text(input_sms)
+            vector_input = tfidf.transform([transform_sms])
+            result = model.predict(vector_input)[0]
+            st.header("Spam" if result == 1 else "Not Spam")
 
-st.title("SMS Spam Classifier")
-input_sms = st.text_input("Enter the message")
-if st.button('Predict'):
-    # 1 preprocess
-    transform_sms = preprocess_text(input_sms)
-    # 2 Vectorize
-    vector_input = tfidf.transform([transform_sms])
-    # 3 predict
-    result = model.predict(vector_input)[0]
-
-    if result == 1:
-        st.header("Spam")
     else:
-        st.header("Not Spam")
+        with st.form("complaint_form"):
+            st.write("Share your thoughts, report issues, or suggest improvements below:")
+            complaint_text = st.text_area("Type your complaint here:")
+            submit_button = st.form_submit_button("Submit Complaint")
+
+        if submit_button and complaint_text:
+            save_complaint(complaint_text)
+            st.success("Complaint submitted successfully! Thank you for your feedback.")
+
+def save_complaint(complaint_text):
+    """Saves a complaint to a CSV file with a timestamp."""
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current time
+    df = pd.DataFrame({"Complaints": [complaint_text], "Timestamp": [current_time]})
+    df.to_csv("complaints.csv", mode="a", header=False, index=False)
+
+if __name__ == "__main__":
+    main()
