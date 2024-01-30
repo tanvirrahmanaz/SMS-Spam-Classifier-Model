@@ -1,5 +1,5 @@
 import streamlit as st
-import pickle as pickle
+import pickle
 
 import nltk
 from nltk.tokenize import word_tokenize
